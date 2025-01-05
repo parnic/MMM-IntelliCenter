@@ -7,7 +7,7 @@
   "repository": "https://github.com/parnic/MMM-IntelliCenter.git",
   "license": "MIT",
   "dependencies": {
-    "node-intellicenter": "^0.1.0"
+    "node-intellicenter": "^0.2.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",

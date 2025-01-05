@@ -2,21 +2,13 @@
 
 var NodeHelper = require("node_helper");
 
-let FindUnits;
-let Unit;
-import("node-intellicenter").then((x) => {
-  FindUnits = x.FindUnits;
-  Unit = x.Unit;
-});
-let messages;
-import("node-intellicenter/messages").then((x) => {
-  messages = x.messages;
-});
+const { FindUnits, Unit } = require("node-intellicenter");
+const messages = require("node-intellicenter/messages");
 const Log = require("logger");
 
 const reconnectDelayMs = 10 * 1000;
 const unitFinderTimeoutMs = 5 * 1000;
-let foundUnit = false;
+let foundUnit;
 const poolData = {
   poolTemp: 0,
   spaTemp: 0,
@@ -42,6 +34,7 @@ let unitFinderRetry;
 let unitReconnectTimer;
 let intellichemObjnam = "";
 let chlorinatorObjnam = "";
+let freezeObjnam = "";
 let initialConnectDone = false;
 
 module.exports = NodeHelper.create({
@@ -223,6 +216,12 @@ module.exports = NodeHelper.create({
             if (obj.params.SALT) {
               poolData.saltPPM = parseInt(obj.params.SALT);
             }
+          } else if (obj.objnam === freezeObjnam) {
+            Log.info("[MMM-IntelliCenter] received freeze-protection update");
+
+            if (obj.params.STATUS) {
+              poolData.freezeMode = obj.params.STATUS === "ON";
+            }
           } else {
             Log.info(
               `[MMM-IntelliCenter] received update for untracked object: ${obj.objnam}`,
@@ -264,6 +263,15 @@ module.exports = NodeHelper.create({
           if (obj.params.SUBTYP === "ICHLOR") {
             chlorinatorObjnam = obj.objnam;
           }
+        }
+
+        Log.info("[MMM-IntelliCenter] getting circuit information...");
+        const circuits = await foundUnit.send(messages.GetCircuitStatus());
+        const freezeCirc = circuits.objectList?.find((obj) => obj.params?.SUBTYP === "FRZ");
+        if (freezeCirc) {
+          freezeObjnam = freezeCirc.objnam;
+          Log.info(`[MMM-IntelliCenter] registering for freeze-protection updates...`);
+          await foundUnit.send(messages.SubscribeToUpdates(freezeObjnam, "STATUS"));
         }
 
         if (bodyUpdates.length > 0) {
