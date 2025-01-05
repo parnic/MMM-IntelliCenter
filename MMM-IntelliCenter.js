@@ -22,7 +22,7 @@ Module.register("MMM-IntelliCenter", {
     pHTankLevelMax: 6,
     serverAddress: "",
     serverPort: 0,
-    multicastInterface: ""
+    multicastInterface: "",
   },
 
   start() {
@@ -31,7 +31,7 @@ Module.register("MMM-IntelliCenter", {
       (!this.config.controls || this.config.controls.length === 0)
     ) {
       Log.warn(
-        "Controls are enabled, but no controls are configured. See README for info on setting up controls."
+        "Controls are enabled, but no controls are configured. See README for info on setting up controls.",
       );
       this.config.showControls = false;
     }
@@ -84,7 +84,7 @@ Module.register("MMM-IntelliCenter", {
       contents.push({
         header: "Pool temp",
         data: `${poolData.status.currentTemp[0]}&deg;${!isPoolActive(poolData.status) ? " (last)" : ""}`,
-        class: this.config.contentClass + className
+        class: this.config.contentClass + className,
       });
     }
     if (this.config.showSpaTemp) {
@@ -98,14 +98,14 @@ Module.register("MMM-IntelliCenter", {
       contents.push({
         header: "Spa temp",
         data: `${poolData.status.currentTemp[1]}&deg;${!isSpaActive(poolData.status) ? " (last)" : ""}`,
-        class: this.config.contentClass + className
+        class: this.config.contentClass + className,
       });
     }
     if (this.config.showPH) {
       let dataStr = poolData.status.pH;
       if (this.config.showPHTankLevel) {
         const percent = Math.round(
-          ((poolData.status.pHTank - 1) / this.config.pHTankLevelMax) * 100
+          ((poolData.status.pHTank - 1) / this.config.pHTankLevelMax) * 100,
         );
         let cls = "";
         if (this.config.colored) {
@@ -128,28 +128,28 @@ Module.register("MMM-IntelliCenter", {
       contents.push({
         header: "pH",
         data: dataStr,
-        class: this.config.contentClass
+        class: this.config.contentClass,
       });
     }
     if (this.config.showOrp) {
       contents.push({
         header: "ORP",
         data: poolData.status.orp,
-        class: this.config.contentClass
+        class: this.config.contentClass,
       });
     }
     if (this.config.showSaltLevel) {
       contents.push({
         header: "Salt PPM",
         data: poolData.status.saltPPM,
-        class: this.config.contentClass
+        class: this.config.contentClass,
       });
     }
     if (this.config.showSaturation) {
       contents.push({
         header: "Saturation",
         data: poolData.status.saturation,
-        class: this.config.contentClass
+        class: this.config.contentClass,
       });
     }
     if (this.config.showControls) {
@@ -187,7 +187,7 @@ Module.register("MMM-IntelliCenter", {
             }" data-state="${on ? "1" : "0"}"><div class="content">${
               name
             }</div></button>`,
-            class: this.config.contentClass
+            class: this.config.contentClass,
           });
         } else if (controlObj.type === "heatpoint") {
           if (
@@ -207,7 +207,7 @@ Module.register("MMM-IntelliCenter", {
 
           contents.push({
             data: dataHtml,
-            class: this.config.contentClass
+            class: this.config.contentClass,
           });
         } else if (controlObj.type === "heatmode") {
           if (
@@ -233,7 +233,7 @@ Module.register("MMM-IntelliCenter", {
             }" data-state="${on ? "1" : "0"}" data-mode="${mode.toString()}"><div class="content">${
               controlObj.name
             }</div></button>`,
-            class: this.config.contentClass
+            class: this.config.contentClass,
           });
         } else {
           Log.warn("circuit with unknown type, unable to display:");
@@ -296,7 +296,7 @@ Module.register("MMM-IntelliCenter", {
     } else if (notification === "INTELLICENTER_RECONNECTING") {
       showReconnectOverlay(true);
     }
-  }
+  },
 });
 
 function showReconnectOverlay(show) {

@@ -27,7 +27,7 @@ module.exports = NodeHelper.create({
     this.setCircuitState(circuitState, (poolStatus) => {
       this.sendSocketNotification("INTELLICENTER_CIRCUIT_DONE", {
         circuitState,
-        status: poolStatus
+        status: poolStatus,
       });
     });
   },
@@ -36,7 +36,7 @@ module.exports = NodeHelper.create({
     this.setHeatpointState(heatpoint, (poolStatus) => {
       this.sendSocketNotification("INTELLICENTER_HEATPOINT_DONE", {
         heatpoint,
-        status: poolStatus
+        status: poolStatus,
       });
     });
   },
@@ -45,7 +45,7 @@ module.exports = NodeHelper.create({
     this.setHeatstateState(heatstate, (poolStatus) => {
       this.sendSocketNotification("INTELLICENTER_HEATSTATE_DONE", {
         heatstate,
-        status: poolStatus
+        status: poolStatus,
       });
     });
   },
@@ -54,7 +54,7 @@ module.exports = NodeHelper.create({
     this.setLights(lightCmd, (poolStatus) => {
       this.sendSocketNotification("INTELLICENTER_LIGHTCMD_DONE", {
         lightCmd,
-        status: poolStatus
+        status: poolStatus,
       });
     });
   },
@@ -73,7 +73,7 @@ module.exports = NodeHelper.create({
           },
           () => {
             this.notifyReconnecting();
-          }
+          },
         );
       } else if (poolData.status) {
         this.sendSocketNotification("INTELLICENTER_RESULT", poolData);
@@ -116,7 +116,7 @@ module.exports = NodeHelper.create({
     foundUnit
       .on("error", (e) => {
         Log.error(
-          `[MMM-IntelliCenter] error in unit connection. restarting the connection process in ${reconnectDelayMs / 1000} seconds`
+          `[MMM-IntelliCenter] error in unit connection. restarting the connection process in ${reconnectDelayMs / 1000} seconds`,
         );
         Log.error(e);
 
@@ -128,7 +128,7 @@ module.exports = NodeHelper.create({
       })
       .on("close", () => {
         Log.error(
-          `[MMM-IntelliCenter] unit connection closed unexpectedly. restarting the connection process in ${reconnectDelayMs / 1000} seconds`
+          `[MMM-IntelliCenter] unit connection closed unexpectedly. restarting the connection process in ${reconnectDelayMs / 1000} seconds`,
         );
 
         reconnectCb();
@@ -139,7 +139,7 @@ module.exports = NodeHelper.create({
       })
       .once("connected", () => {
         Log.info(
-          "[MMM-IntelliCenter] logged into unit. getting basic configuration..."
+          "[MMM-IntelliCenter] logged into unit. getting basic configuration...",
         );
         foundUnit.send(new messages.GetSystemInformation()).then(() => {
           Log.info("[MMM-IntelliCenter] got it!");
@@ -147,7 +147,7 @@ module.exports = NodeHelper.create({
       })
       .once("controllerConfig", (config) => {
         Log.info(
-          "[MMM-IntelliCenter] configuration received. adding client..."
+          "[MMM-IntelliCenter] configuration received. adding client...",
         );
         poolData.controllerConfig = config;
         poolData.degStr = this.config.degC ? "C" : "F";
@@ -155,7 +155,7 @@ module.exports = NodeHelper.create({
       })
       .once("addClient", () => {
         Log.info(
-          "[MMM-IntelliCenter] client added successfully and listening for changes"
+          "[MMM-IntelliCenter] client added successfully and listening for changes",
         );
         foundUnit.getPoolStatus();
         // Connection seems to time out every 10 minutes without some sort of request made
@@ -163,7 +163,7 @@ module.exports = NodeHelper.create({
           () => {
             foundUnit.pingServer();
           },
-          1 * 60 * 1000
+          1 * 60 * 1000,
         );
       })
       .on("poolStatus", (status) => {
@@ -182,7 +182,7 @@ module.exports = NodeHelper.create({
       .on("serverFound", (server) => {
         finder.close();
         Log.info(
-          `[MMM-IntelliCenter] local unit found at ${server.addressStr}:${server.port}`
+          `[MMM-IntelliCenter] local unit found at ${server.addressStr}:${server.port}`,
         );
 
         foundUnit = new Unit(server.addressStr, server.port);
@@ -193,7 +193,7 @@ module.exports = NodeHelper.create({
       })
       .on("error", (e) => {
         Log.error(
-          `[MMM-IntelliCenter] error trying to find a server. scheduling a retry in ${reconnectDelayMs / 1000} seconds`
+          `[MMM-IntelliCenter] error trying to find a server. scheduling a retry in ${reconnectDelayMs / 1000} seconds`,
         );
         Log.error(e);
         this.resetFoundUnit();
@@ -205,7 +205,7 @@ module.exports = NodeHelper.create({
     finder.search();
     unitFinderRetry = setInterval(() => {
       Log.info(
-        `[MMM-IntelliCenter] didn't find any units within ${unitFinderTimeoutMs / 1000} seconds, trying again...`
+        `[MMM-IntelliCenter] didn't find any units within ${unitFinderTimeoutMs / 1000} seconds, trying again...`,
       );
       finder.search();
     }, unitFinderTimeoutMs);
@@ -219,7 +219,7 @@ module.exports = NodeHelper.create({
       this.config.serverPort
     ) {
       Log.info(
-        `[MMM-IntelliCenter] connecting directly to configured unit at ${this.config.serverAddress}:${this.config.serverPort}`
+        `[MMM-IntelliCenter] connecting directly to configured unit at ${this.config.serverAddress}:${this.config.serverPort}`,
       );
       foundUnit = new Unit(this.config.serverAddress, this.config.serverPort);
     }
@@ -238,7 +238,7 @@ module.exports = NodeHelper.create({
     }
 
     Log.info(
-      `[MMM-IntelliCenter] setting circuit ${circuitState.id} to ${circuitState.state}`
+      `[MMM-IntelliCenter] setting circuit ${circuitState.id} to ${circuitState.state}`,
     );
     foundUnit.setCircuitState(0, circuitState.id, circuitState.state);
     foundUnit.getPoolStatus();
@@ -251,7 +251,7 @@ module.exports = NodeHelper.create({
     }
 
     Log.info(
-      `[MMM-IntelliCenter] setting heatpoint for body ${heatpoint.body} to ${heatpoint.temperature} deg`
+      `[MMM-IntelliCenter] setting heatpoint for body ${heatpoint.body} to ${heatpoint.temperature} deg`,
     );
     foundUnit.setSetPoint(0, heatpoint.body, heatpoint.temperature);
     foundUnit.getPoolStatus();
@@ -264,7 +264,7 @@ module.exports = NodeHelper.create({
     }
 
     Log.info(
-      `[MMM-IntelliCenter] setting heat state for body ${heatstate.body} to ${heatstate.state}`
+      `[MMM-IntelliCenter] setting heat state for body ${heatstate.body} to ${heatstate.state}`,
     );
     foundUnit.setHeatMode(0, heatstate.body, heatstate.state);
     foundUnit.getPoolStatus();
@@ -279,5 +279,5 @@ module.exports = NodeHelper.create({
     Log.info(`[MMM-IntelliCenter] sending light command ${lightCmd}`);
     foundUnit.sendLightCommand(0, lightCmd);
     foundUnit.getPoolStatus();
-  }
+  },
 });
