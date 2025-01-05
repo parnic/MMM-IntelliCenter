@@ -17,10 +17,32 @@ const Log = require("logger");
 const reconnectDelayMs = 10 * 1000;
 const unitFinderTimeoutMs = 5 * 1000;
 let foundUnit = false;
-const poolData = {};
+const poolData = {
+  poolTemp: 0,
+  spaTemp: 0,
+  poolSetPoint: 0,
+  spaSetPoint: 0,
+  poolHeaterStatus: false,
+  spaHeaterStatus: false,
+  poolStatus: false,
+  spaStatus: false,
+  phVal: 0,
+  lastPHVal: 0,
+  phTank: 0,
+  orp: 0,
+  lastOrpVal: 0,
+  saltPPM: 0,
+  saturation: 0,
+  freezeMode: false,
+};
+let poolObjnam = "B1101";
+let spaObjnam = "B1202";
 let refreshTimer;
 let unitFinderRetry;
 let unitReconnectTimer;
+let intellichemObjnam = "";
+let chlorinatorObjnam = "";
+let initialConnectDone = false;
 
 module.exports = NodeHelper.create({
   setCircuit(circuitState) {
@@ -75,7 +97,7 @@ module.exports = NodeHelper.create({
             this.notifyReconnecting();
           },
         );
-      } else if (poolData.status) {
+      } else if (poolData) {
         this.sendSocketNotification("INTELLICENTER_RESULT", poolData);
       }
       // If we don't have a status yet, assume the initial connection is still in progress and this socket notification will be delivered when setup is done
@@ -112,6 +134,7 @@ module.exports = NodeHelper.create({
 
   setupUnit(cb, reconnectCb) {
     Log.info("[MMM-IntelliCenter] initial connection to unit...");
+    initialConnectDone = false;
 
     foundUnit
       .on("error", (e) => {
@@ -137,38 +160,155 @@ module.exports = NodeHelper.create({
           this.connect(cb, reconnectCb);
         }, reconnectDelayMs);
       })
-      .once("connected", () => {
-        Log.info(
-          "[MMM-IntelliCenter] logged into unit. getting basic configuration...",
-        );
-        foundUnit.send(new messages.GetSystemInformation()).then(() => {
-          Log.info("[MMM-IntelliCenter] got it!");
-        });
+      .on("notify", (msg) => {
+        // todo: how to find freezeMode on/off?
+        for (const obj of msg.objectList) {
+          if (obj.objnam === intellichemObjnam) {
+            Log.info("[MMM-IntelliCenter] received chemical update");
+
+            if (obj.params.ORPVAL) {
+              poolData.orp = parseInt(obj.params.ORPVAL);
+            }
+            if (obj.params.PHVAL) {
+              poolData.phVal = parseFloat(obj.params.PHVAL);
+            }
+            if (obj.params.PHTNK) {
+              poolData.phTank = parseInt(obj.params.PHTNK);
+            }
+            if (obj.params.QUALTY) {
+              poolData.saturation = parseFloat(obj.params.QUALTY);
+            }
+
+            if (poolData.phVal !== 0) {
+              poolData.lastPHVal = poolData.phVal;
+            }
+            if (poolData.orp !== 0) {
+              poolData.lastOrpVal = poolData.orp;
+            }
+          } else if (obj.objnam === poolObjnam) {
+            Log.info("[MMM-IntelliCenter] received pool update");
+
+            if (obj.params.LOTMP) {
+              poolData.poolSetPoint = parseInt(obj.params.LOTMP);
+            }
+            // todo: HTSRC probably not the right check for this
+            if (obj.params.HTSRC) {
+              poolData.poolHeaterStatus = obj.params.HTSRC !== "00000";
+            }
+            if (obj.params.STATUS) {
+              poolData.poolStatus = obj.params.STATUS === "ON";
+            }
+            if (obj.params.LSTTMP) {
+              poolData.poolTemp = parseInt(obj.params.LSTTMP);
+            }
+          } else if (obj.objnam === spaObjnam) {
+            Log.info("[MMM-IntelliCenter] received spa update");
+
+            if (obj.params.LOTMP) {
+              poolData.spaSetPoint = parseInt(obj.params.LOTMP);
+            }
+            // todo: HTSRC probably not the right check for this
+            if (obj.params.HTSRC) {
+              poolData.spaHeaterStatus = obj.params.HTSRC !== "00000";
+            }
+            if (obj.params.STATUS) {
+              poolData.spaStatus = obj.params.STATUS === "ON";
+            }
+            if (obj.params.LSTTMP) {
+              poolData.spaTemp = parseInt(obj.params.LSTTMP);
+            }
+          } else if (obj.objnam === chlorinatorObjnam) {
+            Log.info("[MMM-IntelliCenter] received chlorinator update");
+
+            if (obj.params.SALT) {
+              poolData.saltPPM = parseInt(obj.params.SALT);
+            }
+          } else {
+            Log.info(
+              `[MMM-IntelliCenter] received update for untracked object: ${obj.objnam}`,
+            );
+          }
+        }
+
+        if (initialConnectDone) {
+          cb(poolData);
+        }
       })
-      .once("controllerConfig", (config) => {
+      .once("connected", async () => {
         Log.info(
-          "[MMM-IntelliCenter] configuration received. adding client...",
+          "[MMM-IntelliCenter] logged into unit. getting system configuration...",
         );
-        poolData.controllerConfig = config;
-        poolData.degStr = this.config.degC ? "C" : "F";
-        foundUnit.addClient(1234);
-      })
-      .once("addClient", () => {
-        Log.info(
-          "[MMM-IntelliCenter] client added successfully and listening for changes",
-        );
-        foundUnit.getPoolStatus();
-        // Connection seems to time out every 10 minutes without some sort of request made
-        refreshTimer = setInterval(
-          () => {
-            foundUnit.pingServer();
-          },
-          1 * 60 * 1000,
-        );
-      })
-      .on("poolStatus", (status) => {
-        Log.info("[MMM-IntelliCenter] received pool status update");
-        poolData.status = status;
+        const sysinfo = await foundUnit.send(messages.GetSystemConfiguration());
+        const bodyUpdates = [];
+        for (const obj of sysinfo.answer) {
+          if (obj.params.OBJTYP === "BODY" && obj.params.SUBTYP === "POOL") {
+            const ichem = obj.params.OBJLIST?.find(
+              (obj) => obj.params.SUBTYP === "ICHEM",
+            );
+            intellichemObjnam = ichem?.objnam;
+
+            poolObjnam = obj.objnam;
+            bodyUpdates.push(obj.objnam);
+          } else if (
+            obj.params.OBJTYP === "BODY" &&
+            obj.params.SUBTYP === "SPA"
+          ) {
+            spaObjnam = obj.objnam;
+            bodyUpdates.push(obj.objnam);
+          }
+        }
+
+        Log.info("[MMM-IntelliCenter] getting chemical status...");
+        const chemstatus = await foundUnit.send(messages.GetChemicalStatus());
+        for (const obj of chemstatus.objectList) {
+          if (obj.params.SUBTYP === "ICHLOR") {
+            chlorinatorObjnam = obj.objnam;
+          }
+        }
+
+        if (bodyUpdates.length > 0) {
+          for (const obj of bodyUpdates) {
+            Log.info(
+              `[MMM-IntelliCenter] registering for ${obj === poolObjnam ? "pool" : obj === spaObjnam ? "spa" : obj} updates...`,
+            );
+            await foundUnit.send(
+              messages.SubscribeToUpdates(obj, [
+                "LOTMP",
+                "HTSRC",
+                "STATUS",
+                "LSTTMP",
+              ]),
+            );
+          }
+        }
+
+        if (chlorinatorObjnam) {
+          Log.info(
+            "[MMM-IntelliCenter] registering for chlorinator updates...",
+          );
+          // can also check PRIM, SEC, and SUPER
+          // PRIM: percentage output going to primary body (probably pool) on 1-100 scale
+          // SEC: percentage output going to secondary body (probably spa) on 1-100 scale
+          // SUPER: "ON" or "OFF" for whether currently in superchlorination mode or not
+          await foundUnit.send(
+            messages.SubscribeToUpdates(chlorinatorObjnam, "SALT"),
+          );
+        }
+
+        if (intellichemObjnam) {
+          Log.info("[MMM-IntelliCenter] registering for chemical updates...");
+          await foundUnit.send(
+            messages.SubscribeToUpdates(intellichemObjnam, [
+              "PHVAL",
+              "PHTNK",
+              "ORPVAL",
+              "QUALTY",
+            ]),
+          );
+        }
+
+        Log.info("[MMM-IntelliCenter] finished initial setup.");
+        initialConnectDone = true;
         cb(poolData);
       });
 

@@ -1,6 +1,6 @@
 /* global Module Log document */
 
-let poolData = {};
+let poolData;
 
 Module.register("MMM-IntelliCenter", {
   defaults: {
@@ -19,7 +19,7 @@ Module.register("MMM-IntelliCenter", {
     columns: 3,
     contentClass: "light",
     showPHTankLevel: true,
-    pHTankLevelMax: 6,
+    pHTankLevelMax: 7,
     serverAddress: "",
     serverPort: 0,
     multicastInterface: "",
@@ -44,7 +44,7 @@ Module.register("MMM-IntelliCenter", {
   },
 
   getDom() {
-    if (!poolData.status) {
+    if (!poolData) {
       const wrapper = document.createElement("div");
       wrapper.innerHTML = "Loading IntelliCenter...";
       wrapper.className += "dimmed light small text-center";
@@ -75,37 +75,37 @@ Module.register("MMM-IntelliCenter", {
 
     if (this.config.showPoolTemp) {
       let className = "";
-      if (poolData.status.currentTemp[0] <= this.config.coldTemp) {
+      if (poolData.poolTemp <= this.config.coldTemp) {
         className += " cold-temp";
-      } else if (poolData.status.currentTemp[0] >= this.config.hotTemp) {
+      } else if (poolData.poolTemp >= this.config.hotTemp) {
         className += " hot-temp";
       }
 
       contents.push({
         header: "Pool temp",
-        data: `${poolData.status.currentTemp[0]}&deg;${!isPoolActive(poolData.status) ? " (last)" : ""}`,
+        data: `${poolData.poolTemp}&deg;${!poolData.poolStatus ? " (last)" : ""}`,
         class: this.config.contentClass + className,
       });
     }
     if (this.config.showSpaTemp) {
       let className = "";
-      if (poolData.status.currentTemp[1] <= this.config.coldTemp) {
+      if (poolData.spaTemp <= this.config.coldTemp) {
         className = " cold-temp";
-      } else if (poolData.status.currentTemp[1] >= this.config.hotTemp) {
+      } else if (poolData.spaTemp >= this.config.hotTemp) {
         className = " hot-temp";
       }
 
       contents.push({
         header: "Spa temp",
-        data: `${poolData.status.currentTemp[1]}&deg;${!isSpaActive(poolData.status) ? " (last)" : ""}`,
+        data: `${poolData.spaTemp}&deg;${!poolData.spaStatus ? " (last)" : ""}`,
         class: this.config.contentClass + className,
       });
     }
     if (this.config.showPH) {
-      let dataStr = poolData.status.pH;
+      let dataStr = poolData.lastPHVal;
       if (this.config.showPHTankLevel) {
         const percent = Math.round(
-          ((poolData.status.pHTank - 1) / this.config.pHTankLevelMax) * 100,
+          ((poolData.phTank - 1) / this.config.pHTankLevelMax) * 100,
         );
         let cls = "";
         if (this.config.colored) {
@@ -134,21 +134,21 @@ Module.register("MMM-IntelliCenter", {
     if (this.config.showOrp) {
       contents.push({
         header: "ORP",
-        data: poolData.status.orp,
+        data: poolData.lastOrpVal.toString(),
         class: this.config.contentClass,
       });
     }
     if (this.config.showSaltLevel) {
       contents.push({
         header: "Salt PPM",
-        data: poolData.status.saltPPM,
+        data: poolData.saltPPM.toString(),
         class: this.config.contentClass,
       });
     }
     if (this.config.showSaturation) {
       contents.push({
         header: "Saturation",
-        data: poolData.status.saturation,
+        data: poolData.saturation.toString(),
         class: this.config.contentClass,
       });
     }
@@ -158,23 +158,24 @@ Module.register("MMM-IntelliCenter", {
 
         if (controlObj.type === "circuit") {
           let { name } = controlObj;
-          for (const circuit in poolData.controllerConfig.bodyArray) {
-            if (
-              poolData.controllerConfig.bodyArray[circuit].circuitId ===
-              controlObj.id
-            ) {
-              if (!name) {
-                name = poolData.controllerConfig.bodyArray[circuit].name;
-              }
-            }
-          }
+          // todo: rework how controls are specified
+          // for (const circuit in poolData.controllerConfig.bodyArray) {
+          //   if (
+          //     poolData.controllerConfig.bodyArray[circuit].circuitId ===
+          //     controlObj.id
+          //   ) {
+          //     if (!name) {
+          //       name = poolData.controllerConfig.bodyArray[circuit].name;
+          //     }
+          //   }
+          // }
 
           let on = false;
-          for (const circuit in poolData.status.circuitArray) {
-            if (poolData.status.circuitArray[circuit].id === controlObj.id) {
-              on = poolData.status.circuitArray[circuit].state !== 0;
-            }
-          }
+          // for (const circuit in poolData.status.circuitArray) {
+          //   if (poolData.status.circuitArray[circuit].id === controlObj.id) {
+          //     on = poolData.status.circuitArray[circuit].state !== 0;
+          //   }
+          // }
 
           let cls = "";
           if (this.config.colored) {
@@ -190,15 +191,18 @@ Module.register("MMM-IntelliCenter", {
             class: this.config.contentClass,
           });
         } else if (controlObj.type === "heatpoint") {
-          if (
-            controlObj.body < 0 ||
-            controlObj.body > poolData.status.setPoint.length
-          ) {
-            Log.warn("Invalid body specified for heatpoint");
+          const body = controlObj.body.toLowerCase();
+          if (body !== "pool" && body !== "spa") {
+            Log.warn(
+              "Invalid body specified for heatpoint. Valid bodies: pool, spa",
+            );
             continue;
           }
 
-          const temperature = poolData.status.setPoint[controlObj.body];
+          const temperature =
+            body === "pool"
+              ? poolData.poolSetPoint.toString()
+              : poolData.spaSetPoint.toString();
 
           let dataHtml = '<div class="temperature-container">';
           dataHtml += `<button id="sl-temp-up-${controlObj.body}" class="temperature control-off" onclick="setHeatpoint(this, 1)" data-body="${controlObj.body}" data-temperature="${temperature}"><div class="content">+</div></button>`;
@@ -210,15 +214,18 @@ Module.register("MMM-IntelliCenter", {
             class: this.config.contentClass,
           });
         } else if (controlObj.type === "heatmode") {
-          if (
-            controlObj.body < 0 ||
-            controlObj.body > poolData.status.heatMode.length
-          ) {
-            Log.warn("Invalid body specified for heatmode");
+          const body = controlObj.body.toLowerCase();
+          if (body !== "pool" && body !== "spa") {
+            Log.warn(
+              "Invalid body specified for heatmode. Valid bodies: pool, spa",
+            );
             continue;
           }
 
-          const on = poolData.status.heatMode[controlObj.body] !== 0;
+          const on =
+            body === "pool"
+              ? poolData.poolHeaterStatus
+              : poolData.spaHeaterStatus;
           const mode =
             typeof controlObj.heatMode === "number" ? controlObj.heatMode : 3;
 
@@ -245,7 +252,7 @@ Module.register("MMM-IntelliCenter", {
     let headerRow = null;
     let contentRow = null;
 
-    if (this.config.showFreezeMode && poolData.status.freezeMode !== 0) {
+    if (this.config.showFreezeMode && poolData.freezeMode) {
       const row = document.createElement("tr");
       table.appendChild(row);
       row.className = "cold-temp";
@@ -284,49 +291,30 @@ Module.register("MMM-IntelliCenter", {
     if (notification === "INTELLICENTER_RESULT") {
       poolData = payload;
       this.updateDom();
-      showReconnectOverlay(false);
+      this.showReconnectOverlay(false);
     } else if (
       notification === "INTELLICENTER_CIRCUIT_DONE" ||
       notification === "INTELLICENTER_HEATSTATE_DONE" ||
       notification === "INTELLICENTER_HEATPOINT_DONE"
     ) {
-      poolData.status = payload.status;
+      poolData = payload;
       this.updateDom();
-      showReconnectOverlay(false);
+      this.showReconnectOverlay(false);
     } else if (notification === "INTELLICENTER_RECONNECTING") {
-      showReconnectOverlay(true);
+      this.showReconnectOverlay(true);
+    }
+  },
+
+  showReconnectOverlay(show) {
+    const element = document.querySelector(".MMM-IntelliCenter .reconnecting");
+    if (!element || !element.classList) {
+      return;
+    }
+
+    if (show) {
+      element.classList.remove("d-none");
+    } else {
+      element.classList.add("d-none");
     }
   },
 });
-
-function showReconnectOverlay(show) {
-  const element = document.querySelector(".MMM-IntelliCenter .reconnecting");
-  if (!element || !element.classList) {
-    return;
-  }
-
-  if (show) {
-    element.classList.remove("d-none");
-  } else {
-    element.classList.add("d-none");
-  }
-}
-
-const SPA_CIRCUIT_ID = 500;
-const POOL_CIRCUIT_ID = 505;
-
-function isPoolActive(status) {
-  for (let i = 0; i < status.circuitArray.length; i += 1) {
-    if (status.circuitArray[i].id === POOL_CIRCUIT_ID) {
-      return status.circuitArray[i].state === 1;
-    }
-  }
-}
-
-function isSpaActive(status) {
-  for (let i = 0; i < status.circuitArray.length; i += 1) {
-    if (status.circuitArray[i].id === SPA_CIRCUIT_ID) {
-      return status.circuitArray[i].state === 1;
-    }
-  }
-}
