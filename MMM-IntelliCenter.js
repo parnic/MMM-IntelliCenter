@@ -160,7 +160,7 @@ Module.register("MMM-IntelliCenter", {
           let { name } = controlObj;
           let on = false;
           if (poolData.circuits[controlObj.id]) {
-            name = poolData.circuits[controlObj.id].name ?? controlObj.name;
+            name ??= poolData.circuits[controlObj.id].name;
             on = poolData.circuits[controlObj.id].status;
           }
 
