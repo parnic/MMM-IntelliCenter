@@ -158,24 +158,11 @@ Module.register("MMM-IntelliCenter", {
 
         if (controlObj.type === "circuit") {
           let { name } = controlObj;
-          // todo: rework how controls are specified
-          // for (const circuit in poolData.controllerConfig.bodyArray) {
-          //   if (
-          //     poolData.controllerConfig.bodyArray[circuit].circuitId ===
-          //     controlObj.id
-          //   ) {
-          //     if (!name) {
-          //       name = poolData.controllerConfig.bodyArray[circuit].name;
-          //     }
-          //   }
-          // }
-
           let on = false;
-          // for (const circuit in poolData.status.circuitArray) {
-          //   if (poolData.status.circuitArray[circuit].id === controlObj.id) {
-          //     on = poolData.status.circuitArray[circuit].state !== 0;
-          //   }
-          // }
+          if (poolData.circuits[controlObj.id]) {
+            name = poolData.circuits[controlObj.id].name ?? controlObj.name;
+            on = poolData.circuits[controlObj.id].status;
+          }
 
           let cls = "";
           if (this.config.colored) {
@@ -191,6 +178,7 @@ Module.register("MMM-IntelliCenter", {
             class: this.config.contentClass,
           });
         } else if (controlObj.type === "heatpoint") {
+          // todo: if "body" isn't defined in the user's config correctly, this will error out
           const body = controlObj.body.toLowerCase();
           if (body !== "pool" && body !== "spa") {
             Log.warn(
@@ -214,6 +202,7 @@ Module.register("MMM-IntelliCenter", {
             class: this.config.contentClass,
           });
         } else if (controlObj.type === "heatmode") {
+          // todo: if "body" isn't defined in the user's config correctly, this will error out
           const body = controlObj.body.toLowerCase();
           if (body !== "pool" && body !== "spa") {
             Log.warn(

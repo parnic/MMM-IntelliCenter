@@ -26,6 +26,7 @@ const poolData = {
   saltPPM: 0,
   saturation: 0,
   freezeMode: false,
+  circuits: {},
 };
 let poolObjnam = "B1101";
 let spaObjnam = "B1202";
@@ -222,6 +223,14 @@ module.exports = NodeHelper.create({
             if (obj.params.STATUS) {
               poolData.freezeMode = obj.params.STATUS === "ON";
             }
+          } else if (Object.keys(poolData.circuits).includes(obj.objnam)) {
+            Log.info(
+              `[MMM-IntelliCenter] received update for circuit ${obj.objnam}`,
+            );
+
+            if (obj.params.STATUS) {
+              poolData.circuits[obj.objnam].status = obj.params.STATUS === "ON";
+            }
           } else {
             Log.info(
               `[MMM-IntelliCenter] received update for untracked object: ${obj.objnam}`,
@@ -267,11 +276,37 @@ module.exports = NodeHelper.create({
 
         Log.info("[MMM-IntelliCenter] getting circuit information...");
         const circuits = await foundUnit.send(messages.GetCircuitStatus());
-        const freezeCirc = circuits.objectList?.find((obj) => obj.params?.SUBTYP === "FRZ");
+        const freezeCirc = circuits.objectList?.find(
+          (obj) => obj.params?.SUBTYP === "FRZ",
+        );
         if (freezeCirc) {
           freezeObjnam = freezeCirc.objnam;
-          Log.info(`[MMM-IntelliCenter] registering for freeze-protection updates...`);
-          await foundUnit.send(messages.SubscribeToUpdates(freezeObjnam, "STATUS"));
+          Log.info(
+            `[MMM-IntelliCenter] registering for freeze-protection updates...`,
+          );
+          await foundUnit.send(
+            messages.SubscribeToUpdates(freezeObjnam, "STATUS"),
+          );
+        }
+        if (this.config.controls?.length > 0) {
+          for (const circuit of circuits.objectList) {
+            const wantedControl = this.config.controls.find(
+              (c) => c.id === circuit.objnam,
+            );
+            if (!wantedControl) {
+              continue;
+            }
+
+            poolData.circuits[circuit.objnam] = {
+              status: false,
+              name: circuit.params.SNAME,
+            };
+          }
+        }
+
+        for (const circuit of Object.keys(poolData.circuits)) {
+          Log.info(`[MMM-IntelliCenter] registering for ${circuit} updates...`);
+          await foundUnit.send(messages.SubscribeToUpdates(circuit, "STATUS"));
         }
 
         if (bodyUpdates.length > 0) {
