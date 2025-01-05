@@ -1,0 +1,24 @@
+{
+  "name": "mmm-intellicenter",
+  "version": "1.0.0",
+  "description": "Show data from Pentair IntelliCenter systems",
+  "main": "MMM-IntelliCenter.js",
+  "author": "parnic",
+  "repository": "https://github.com/parnic/MMM-IntelliCenter.git",
+  "license": "MIT",
+  "dependencies": {
+    "node-intellicenter": "^0.0.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "eslint": "^9.17.0",
+    "prettier": "^3.4.2",
+    "stylelint": "^16.12.0",
+    "stylelint-config-standard": "^36.0.1",
+    "stylelint-prettier": "^5.0.2"
+  },
+  "scripts": {
+    "lint": "eslint . && stylelint intellicenter.css && prettier . --check",
+    "lint:fix": "eslint . --fix && stylelint intellicenter.css --fix && prettier . --write"
+  }
+}

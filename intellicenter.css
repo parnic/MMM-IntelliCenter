@@ -1,0 +1,165 @@
+.MMM-IntelliCenter table.colored .cold-temp {
+  color: #bcddff;
+}
+
+.MMM-IntelliCenter table.colored .hot-temp {
+  color: #ff8e99;
+}
+
+.MMM-IntelliCenter td {
+  width: 33%;
+}
+
+.MMM-IntelliCenter .control {
+  background: #000;
+  border: 1px solid #6c757d;
+  font-size: 0.8rem;
+  color: #fff;
+  display: block;
+  text-align: center;
+  line-height: 1.5;
+  transition:
+    color 0.15s ease-in-out,
+    background-color 0.15s ease-in-out,
+    border-color 0.15s ease-in-out,
+    box-shadow 0.15s ease-in-out;
+  box-sizing: border-box;
+  position: relative;
+  width: 80%;
+  height: 5rem;
+  margin: auto;
+  font-weight: bold;
+  user-select: none;
+  cursor: none;
+  outline: none;
+}
+
+.MMM-IntelliCenter .control::after {
+  padding-bottom: 100%;
+  content: "";
+  display: block;
+}
+
+.MMM-IntelliCenter .content {
+  position: absolute;
+  width: 90%;
+  height: 90%;
+  left: 0;
+  top: 0;
+  padding: 5%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.MMM-IntelliCenter .control-on {
+  background: #28a745 !important;
+  border-color: #28a745 !important;
+}
+
+.MMM-IntelliCenter .control-off {
+  background: transparent !important;
+  border-color: #6c757d !important;
+}
+
+.MMM-IntelliCenter .temperature-container {
+  font-size: 0.9rem;
+  font-weight: bold;
+  color: #fff;
+  text-align: center;
+  line-height: 1;
+  border: 1px solid #6c757d;
+  width: 80%;
+  margin: auto;
+}
+
+.MMM-IntelliCenter .temperature-label {
+  height: 0;
+  transform: translateY(-0.5em);
+}
+
+.MMM-IntelliCenter .temperature {
+  background: #000;
+  border: 0 solid #6c757d;
+  color: #fff;
+  position: relative;
+  width: 80%;
+  height: 2.45rem;
+  margin: auto;
+  font-weight: bold;
+  user-select: none;
+  cursor: none;
+  outline: none;
+}
+
+.MMM-IntelliCenter .vertical {
+  display: inline-block;
+  width: 20%;
+  height: 0.7em;
+  transform: rotate(-90deg);
+  box-shadow: inset 0 0 3px #ccc;
+}
+
+.MMM-IntelliCenter .progress-bar {
+  box-shadow: inset 0 0 3px rgb(100 100 100 / 60%);
+  float: left;
+  width: 0;
+  height: 100%;
+  font-size: 12px;
+  line-height: 20px;
+  color: #fff;
+  text-align: center;
+  background-color: #fff;
+  transition: width 0.6s ease;
+}
+
+.MMM-IntelliCenter .progress-bar-success {
+  background-color: #5cb85c;
+}
+
+.MMM-IntelliCenter .progress-bar-warning {
+  background-color: #ffc107;
+}
+
+.MMM-IntelliCenter .progress-bar-danger {
+  background-color: #dc3545;
+}
+
+.MMM-IntelliCenter .text-center {
+  text-align: center;
+}
+
+.MMM-IntelliCenter .container {
+  display: grid;
+}
+
+.MMM-IntelliCenter .base-content,
+.overlay {
+  grid-area: 1 / 1;
+}
+
+.MMM-IntelliCenter .overlay {
+  z-index: 9;
+}
+
+.MMM-IntelliCenter .reconnecting {
+  text-align: center;
+  align-items: center;
+  display: grid;
+}
+
+.MMM-IntelliCenter .margin-auto {
+  margin: auto;
+}
+
+.MMM-IntelliCenter .bg-blur {
+  border-radius: 10px;
+  padding: 18%;
+  background: #fff6;
+  color: white;
+  backdrop-filter: blur(4px);
+}
+
+.MMM-IntelliCenter .d-none {
+  display: none !important;
+}
