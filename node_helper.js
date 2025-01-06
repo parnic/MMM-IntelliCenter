@@ -191,7 +191,6 @@ module.exports = NodeHelper.create({
         }, reconnectDelayMs);
       })
       .on("notify", (msg) => {
-        // todo: how to find freezeMode on/off?
         for (const obj of msg.objectList) {
           if (obj.objnam === intellichemObjnam) {
             Log.info("[MMM-IntelliCenter] received chemical update");
