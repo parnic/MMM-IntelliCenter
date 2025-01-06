@@ -40,39 +40,75 @@ let initialConnectDone = false;
 
 module.exports = NodeHelper.create({
   setCircuit(circuitState) {
-    this.setCircuitState(circuitState, (poolStatus) => {
-      this.sendSocketNotification("INTELLICENTER_CIRCUIT_DONE", {
-        circuitState,
-        status: poolStatus,
-      });
-    });
+    if (!foundUnit) {
+      return;
+    }
+
+    Log.info(
+      `[MMM-IntelliCenter] setting circuit ${circuitState.id} to ${!!circuitState.state}`,
+    );
+    foundUnit.send(
+      messages.SetObjectStatus(circuitState.id, !!circuitState.state),
+    );
   },
 
   setHeatpoint(heatpoint) {
-    this.setHeatpointState(heatpoint, (poolStatus) => {
-      this.sendSocketNotification("INTELLICENTER_HEATPOINT_DONE", {
-        heatpoint,
-        status: poolStatus,
-      });
-    });
+    if (!foundUnit) {
+      return;
+    }
+
+    let heatObjnam = "";
+    if (heatpoint.body === "spa") {
+      heatObjnam = spaObjnam;
+    } else if (heatpoint.body === "pool") {
+      heatObjnam = poolObjnam;
+    }
+
+    if (!heatObjnam) {
+      Log.error(
+        `[MMM-IntelliCenter] unable to determine objnam from given heatpoint body ${heatpoint.body} - expected "spa" or "pool"`,
+      );
+      return;
+    }
+
+    Log.info(
+      `[MMM-IntelliCenter] setting heatpoint for body ${heatObjnam} to ${heatpoint.temperature} deg`,
+    );
+    foundUnit.send(messages.SetSetpoint(heatObjnam, heatpoint.temperature));
   },
 
   setHeatstate(heatstate) {
-    this.setHeatstateState(heatstate, (poolStatus) => {
-      this.sendSocketNotification("INTELLICENTER_HEATSTATE_DONE", {
-        heatstate,
-        status: poolStatus,
-      });
-    });
+    if (!foundUnit) {
+      return;
+    }
+    let heatObjnam = "";
+    if (heatstate.body === "spa") {
+      heatObjnam = spaObjnam;
+    } else if (heatstate.body === "pool") {
+      heatObjnam = poolObjnam;
+    }
+
+    if (!heatObjnam) {
+      Log.error(
+        `[MMM-IntelliCenter] unable to determine objnam from given heatstate body ${heatstate.body} - expected "spa" or "pool"`,
+      );
+      return;
+    }
+
+    Log.info(
+      `[MMM-IntelliCenter] setting heat state for body ${heatObjnam} to ${!!heatstate.state}`,
+    );
+    foundUnit.send(messages.SetHeatMode(heatObjnam, !!heatstate.state));
   },
 
   setLightcmd(lightCmd) {
-    this.setLights(lightCmd, (poolStatus) => {
-      this.sendSocketNotification("INTELLICENTER_LIGHTCMD_DONE", {
-        lightCmd,
-        status: poolStatus,
-      });
-    });
+    if (!foundUnit) {
+      return;
+    }
+
+    Log.info(`[MMM-IntelliCenter] sending light command ${lightCmd}`);
+    // NYI in node-intellicenter
+    // foundUnit.send(messages.SendLightCommand(lightCmd));
   },
 
   notifyReconnecting() {
@@ -185,9 +221,9 @@ module.exports = NodeHelper.create({
             if (obj.params.LOTMP) {
               poolData.poolSetPoint = parseInt(obj.params.LOTMP);
             }
-            // todo: HTSRC probably not the right check for this
-            if (obj.params.HTSRC) {
-              poolData.poolHeaterStatus = obj.params.HTSRC !== "00000";
+            // todo: is MODE the right check for this?
+            if (obj.params.MODE) {
+              poolData.poolHeaterStatus = obj.params.MODE === "11";
             }
             if (obj.params.STATUS) {
               poolData.poolStatus = obj.params.STATUS === "ON";
@@ -201,9 +237,9 @@ module.exports = NodeHelper.create({
             if (obj.params.LOTMP) {
               poolData.spaSetPoint = parseInt(obj.params.LOTMP);
             }
-            // todo: HTSRC probably not the right check for this
-            if (obj.params.HTSRC) {
-              poolData.spaHeaterStatus = obj.params.HTSRC !== "00000";
+            // todo: is MODE the right check for this?
+            if (obj.params.MODE) {
+              poolData.spaHeaterStatus = obj.params.MODE === "11";
             }
             if (obj.params.STATUS) {
               poolData.spaStatus = obj.params.STATUS === "ON";
@@ -317,7 +353,7 @@ module.exports = NodeHelper.create({
             await foundUnit.send(
               messages.SubscribeToUpdates(obj, [
                 "LOTMP",
-                "HTSRC",
+                "MODE",
                 "STATUS",
                 "LSTTMP",
               ]),
@@ -412,55 +448,5 @@ module.exports = NodeHelper.create({
     } else {
       this.findServer(cb, reconnectCb);
     }
-  },
-
-  setCircuitState(circuitState, cb) {
-    if (!foundUnit) {
-      cb();
-      return;
-    }
-
-    Log.info(
-      `[MMM-IntelliCenter] setting circuit ${circuitState.id} to ${circuitState.state}`,
-    );
-    foundUnit.setCircuitState(0, circuitState.id, circuitState.state);
-    foundUnit.getPoolStatus();
-  },
-
-  setHeatpointState(heatpoint, cb) {
-    if (!foundUnit) {
-      cb();
-      return;
-    }
-
-    Log.info(
-      `[MMM-IntelliCenter] setting heatpoint for body ${heatpoint.body} to ${heatpoint.temperature} deg`,
-    );
-    foundUnit.setSetPoint(0, heatpoint.body, heatpoint.temperature);
-    foundUnit.getPoolStatus();
-  },
-
-  setHeatstateState(heatstate, cb) {
-    if (!foundUnit) {
-      cb();
-      return;
-    }
-
-    Log.info(
-      `[MMM-IntelliCenter] setting heat state for body ${heatstate.body} to ${heatstate.state}`,
-    );
-    foundUnit.setHeatMode(0, heatstate.body, heatstate.state);
-    foundUnit.getPoolStatus();
-  },
-
-  setLights(lightCmd, cb) {
-    if (!foundUnit) {
-      cb();
-      return;
-    }
-
-    Log.info(`[MMM-IntelliCenter] sending light command ${lightCmd}`);
-    foundUnit.sendLightCommand(0, lightCmd);
-    foundUnit.getPoolStatus();
   },
 });
