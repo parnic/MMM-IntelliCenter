@@ -166,29 +166,28 @@ module.exports = NodeHelper.create({
     Log.info("[MMM-IntelliCenter] initial connection to unit...");
     initialConnectDone = false;
 
+    const reset = () => {
+      reconnectCb();
+      this.resetFoundUnit();
+      unitReconnectTimer = setTimeout(() => {
+        this.connect(cb, reconnectCb);
+      }, reconnectDelayMs);
+    };
+
     foundUnit
       .on("error", (e) => {
-        Log.error(
-          `[MMM-IntelliCenter] error in unit connection. restarting the connection process in ${reconnectDelayMs / 1000} seconds`,
-        );
+        Log.error("[MMM-IntelliCenter] error in unit connection.");
         Log.error(e);
-
-        reconnectCb();
-        this.resetFoundUnit();
-        unitReconnectTimer = setTimeout(() => {
-          this.connect(cb, reconnectCb);
-        }, reconnectDelayMs);
       })
       .on("close", () => {
         Log.error(
           `[MMM-IntelliCenter] unit connection closed unexpectedly. restarting the connection process in ${reconnectDelayMs / 1000} seconds`,
         );
 
-        reconnectCb();
-        this.resetFoundUnit();
-        unitReconnectTimer = setTimeout(() => {
-          this.connect(cb, reconnectCb);
-        }, reconnectDelayMs);
+        reset();
+      })
+      .on("timeout", () => {
+        Log.error("[MMM-IntelliCenter] unit connection timed out.");
       })
       .on("notify", (msg) => {
         for (const obj of msg.objectList) {
