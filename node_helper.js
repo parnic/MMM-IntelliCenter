@@ -1,4 +1,4 @@
-/* global module require clearInterval clearTimeout setTimeout setInterval config */
+/* global module require clearInterval clearTimeout setTimeout setInterval */
 
 var NodeHelper = require("node_helper");
 
@@ -259,7 +259,7 @@ module.exports = NodeHelper.create({
             }
           } else if (Object.keys(poolData.circuits).includes(obj.objnam)) {
             Log.info(
-              `[MMM-IntelliCenter] received update for circuit ${obj.objnam}`,
+              `[MMM-IntelliCenter] received update for circuit ${obj.objnam} (${poolData.circuits[obj.objnam].name})`,
             );
 
             if (obj.params.STATUS) {
@@ -431,7 +431,7 @@ module.exports = NodeHelper.create({
   connect(cb, reconnectCb) {
     if (
       !foundUnit &&
-      typeof config !== "undefined" &&
+      typeof this.config !== "undefined" &&
       this.config.serverAddress &&
       this.config.serverPort
     ) {

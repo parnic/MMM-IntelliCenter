@@ -174,7 +174,7 @@ Module.register("MMM-IntelliCenter", {
   },
 
   getPHDom() {
-    let dataStr = this.poolData.lastPHVal;
+    let dataStr = this.poolData.lastPHVal.toString();
     if (this.config.showPHTankLevel) {
       const percent = Math.round(
         ((this.poolData.phTank - 1) / this.config.pHTankLevelMax) * 100,
@@ -246,8 +246,10 @@ Module.register("MMM-IntelliCenter", {
           controls.push(circuit);
         }
       } else {
-        Log.warn("circuit with unknown type, unable to display:");
-        Log.warn(controlObj);
+        Log.warn(
+          "circuit with unknown type, unable to display. supported types: circuit, heatpoint, heatmode. object:",
+          controlObj,
+        );
       }
     }
 
@@ -289,29 +291,34 @@ Module.register("MMM-IntelliCenter", {
   },
 
   getHeatpointDom(controlObj) {
-    // todo: if "body" isn't defined in the user's config correctly, this will error out
-    const body = controlObj.body.toLowerCase();
+    const body =
+      typeof controlObj.body === "string" ? controlObj.body.toLowerCase() : "";
     if (body !== "pool" && body !== "spa") {
-      Log.warn("Invalid body specified for heatpoint. Valid bodies: pool, spa");
+      Log.warn(
+        "Invalid body specified for heatpoint. Valid bodies: pool, spa",
+        controlObj,
+      );
+      return;
+    }
+    if (!controlObj.name) {
+      Log.warn("Invalid name specified for heatpoint.", controlObj);
       return;
     }
 
     const temperature =
-      body === "pool"
-        ? this.poolData.poolSetPoint.toString()
-        : this.poolData.spaSetPoint.toString();
+      body === "pool" ? this.poolData.poolSetPoint : this.poolData.spaSetPoint;
 
     const div = document.createElement("div");
     div.classList.add("temperature-container");
 
     const buttonUp = document.createElement("button");
-    buttonUp.id = `sl-temp-up-${controlObj.body}`;
+    buttonUp.id = `sl-temp-up-${body}`;
     buttonUp.classList.add("control-off", "temperature");
     buttonUp.onclick = (e) => {
       this.setHeatpoint(e.currentTarget, 1);
     };
-    buttonUp.dataset.body = controlObj.body;
-    buttonUp.dataset.temperature = temperature;
+    buttonUp.dataset.body = body;
+    buttonUp.dataset.temperature = temperature.toString();
 
     const contentUp = document.createElement("div");
     contentUp.classList.add("content");
@@ -326,12 +333,12 @@ Module.register("MMM-IntelliCenter", {
     div.appendChild(label);
 
     const buttonDown = document.createElement("button");
-    buttonDown.id = `sl-temp-down-${controlObj.body}`;
+    buttonDown.id = `sl-temp-down-${body}`;
     buttonDown.classList.add("control-off", "temperature");
     buttonDown.onclick = (e) => {
       this.setHeatpoint(e.currentTarget, -1);
     };
-    buttonDown.dataset.body = controlObj.body;
+    buttonDown.dataset.body = body;
     buttonDown.dataset.temperature = temperature;
 
     const contentDown = document.createElement("div");
@@ -348,10 +355,17 @@ Module.register("MMM-IntelliCenter", {
   },
 
   getHeatmodeDom(controlObj) {
-    // todo: if "body" isn't defined in the user's config correctly, this will error out
-    const body = controlObj.body.toLowerCase();
+    const body =
+      typeof controlObj.body === "string" ? controlObj.body.toLowerCase() : "";
     if (body !== "pool" && body !== "spa") {
-      Log.warn("Invalid body specified for heatmode. Valid bodies: pool, spa");
+      Log.warn(
+        "Invalid body specified for heatmode. Valid bodies: pool, spa",
+        controlObj,
+      );
+      return;
+    }
+    if (!controlObj.name) {
+      Log.warn("Invalid name specified for heatmode.", controlObj);
       return;
     }
 
@@ -366,13 +380,13 @@ Module.register("MMM-IntelliCenter", {
     }
 
     const button = document.createElement("button");
-    button.id = `sl-heat-${controlObj.body}`;
+    button.id = `sl-heat-${body}`;
     button.classList.add("control", cls);
     button.onclick = (e) => {
       this.setHeatmode(e.currentTarget);
     };
-    button.dataset.body = controlObj.body;
-    button.dataset.state = on ? 1 : 0;
+    button.dataset.body = body;
+    button.dataset.state = on ? "1" : "0";
 
     const content = document.createElement("div");
     content.classList.add("content");
