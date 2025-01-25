@@ -389,7 +389,18 @@ module.exports = NodeHelper.create({
         cb(poolData);
       });
 
-    foundUnit.connect();
+    foundUnit.connect().catch((ex) => {
+      Log.error(
+        `[MMM-IntelliCenter] error attempting to connect to unit: ${ex}`,
+      );
+      Log.error(
+        `[MMM-IntelliCenter] restarting the connection process in ${reconnectDelayMs / 1000} seconds`,
+      );
+
+      unitReconnectTimer = setTimeout(() => {
+        this.connect(cb, reconnectCb);
+      }, reconnectDelayMs);
+    });
   },
 
   findServer(cb, reconnectCb) {
