@@ -1,10 +1,13 @@
-/* global module require clearInterval clearTimeout setTimeout setInterval */
-
 var NodeHelper = require("node_helper");
 
 const { FindUnits, Unit } = require("node-intellicenter");
 const messages = require("node-intellicenter/messages");
 const Log = require("logger");
+const path = require("path");
+const fs = require("fs");
+const filename = "/lastData.json";
+
+var configFilename = path.resolve(__dirname + filename);
 
 const reconnectDelayMs = 10 * 1000;
 const unitFinderTimeoutMs = 5 * 1000;
@@ -39,6 +42,31 @@ let freezeObjnam = "";
 let initialConnectDone = false;
 
 module.exports = NodeHelper.create({
+  start() {
+    Log.info("##### Starting node helper for: " + this.name);
+
+    try {
+      const data = fs.readFileSync(configFilename);
+      if (data && data.length > 0) {
+        const parsed = JSON.parse(data);
+        poolData.lastPHVal = parsed.lastPH ?? 0;
+        poolData.lastOrpVal = parsed.lastOrp ?? 0;
+      }
+    } catch {
+      // no existing config
+    }
+  },
+
+  saveLast() {
+    const obj = {
+      lastPH: poolData.lastPHVal,
+      lastOrp: poolData.lastOrpVal,
+    };
+
+    const json = JSON.stringify(obj);
+    fs.writeFileSync(configFilename, json, "utf8");
+  },
+
   setCircuit(circuitState) {
     if (!foundUnit) {
       return;
@@ -209,9 +237,11 @@ module.exports = NodeHelper.create({
 
             if (poolData.phVal !== 0) {
               poolData.lastPHVal = poolData.phVal;
+              this.saveLast();
             }
             if (poolData.orp !== 0) {
               poolData.lastOrpVal = poolData.orp;
+              this.saveLast();
             }
           } else if (obj.objnam === poolObjnam) {
             Log.info("[MMM-IntelliCenter] received pool update");
