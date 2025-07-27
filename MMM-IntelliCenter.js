@@ -19,7 +19,7 @@ Module.register("MMM-IntelliCenter", {
     columns: 3,
     contentClass: "light",
     showPHTankLevel: true,
-    pHTankLevelMax: 7,
+    pHTankLevelMax: 6,
     serverAddress: "",
     serverPort: 6680,
     multicastInterface: "",
