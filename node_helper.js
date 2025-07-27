@@ -439,15 +439,13 @@ module.exports = NodeHelper.create({
     finder
       .on("serverFound", (server) => {
         finder.close();
+        this.resetFoundUnit();
         Log.info(
           `[MMM-IntelliCenter] local unit found at ${server.addressStr}:${server.port}`,
         );
 
         foundUnit = new Unit(server.addressStr, server.port);
         this.setupUnit(cb, reconnectCb);
-
-        clearInterval(unitFinderRetry);
-        unitFinderRetry = null;
       })
       .on("error", (e) => {
         Log.error(
