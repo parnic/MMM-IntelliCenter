@@ -18,6 +18,10 @@
     "stylelint-config-standard": "^36.0.1",
     "stylelint-prettier": "^5.0.2"
   },
+  "overrides": {
+    "js-yaml": "^4.2.0",
+    "markdown-it": "^14.2.0"
+  },
   "scripts": {
     "lint": "eslint . && stylelint intellicenter.css && prettier . --check && markdownlint-cli2 **/*.md",
     "lint:fix": "eslint . --fix && stylelint intellicenter.css --fix && prettier . --write && markdownlint-cli2 --fix **/*.md"
