@@ -20,7 +20,7 @@
   },
   "overrides": {
     "js-yaml": "^4.3.2",
-    "markdown-it": "^14.2.0"
+    "markdown-it": "^14.3.2"
   },
   "scripts": {
     "lint": "eslint . && stylelint intellicenter.css && prettier . --check && markdownlint-cli2 **/*.md",
